@@ -1,0 +1,9 @@
+{
+  "bundle": {
+    "linux": {
+      "deb": { "section": "video" },
+      "rpm": { "release": "1" },
+      "appimage": { "bundleMediaFramework": false }
+    }
+  }
+}
