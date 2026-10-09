@@ -48,6 +48,7 @@ src/ (Frontend, TypeScript + Vite)            src-tauri/src/ (Backend, Rust + Ta
 The frontend renders forms from `defs.ts` and sends jobs to the backend over
 Tauri IPC. The backend validates input, runs native Rust code or external tools
 (FFmpeg, 7-Zip, Poppler, …) and streams progress events back to the queue.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a detailed walkthrough.
 
 ## Features
 
@@ -107,6 +108,7 @@ guidelines, and [docs/BUILDING.md](docs/BUILDING.md) for packaging.
 
 ## Documentation
 
+- [Architecture](docs/ARCHITECTURE.md)
 - [Feature checklist and matrix](docs/FEATURES.md)
 - [Building and packaging](docs/BUILDING.md)
 - [Dependencies and licensing](docs/DEPENDENCIES.md)
