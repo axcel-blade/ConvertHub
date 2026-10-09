@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-09
+
+### Fixed
+
+- Windows: opening the System & tools page no longer pops up a LibreOffice
+  console asking to "Press Enter to continue...". The LibreOffice version is
+  now read from `programersion.ini` instead of running `soffice --version`.
+- Tool version checks now run with an empty stdin, so no tool can wait for
+  keyboard input.
+
 ### Added
 
 - Community docs: CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, SUPPORT,
@@ -24,5 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Batch queue, recent-jobs history, format guide, System & tools page and
   language picker.
 
-[Unreleased]: https://github.com/axcel-blade/ConvertHub/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/axcel-blade/ConvertHub/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/axcel-blade/ConvertHub/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/axcel-blade/ConvertHub/releases/tag/v0.1.0

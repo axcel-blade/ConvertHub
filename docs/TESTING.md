@@ -63,6 +63,7 @@ installed unless the item says otherwise.
 - [ ] Merge 3 PDFs in a custom order
 - [ ] TXT/DOCX/XLSX/HTML without Poppler/LibreOffice; DOC/XLS show the LibreOffice message
 - [ ] Same with Poppler and LibreOffice installed (better layout)
+- [ ] Windows: opening System & tools with LibreOffice installed shows its version and no console window
 - [ ] Scanned PDF reports "no text found (OCR not supported)"; encrypted PDF reports encryption
 - [ ] Extract images, with and without "convert to JPG"
 

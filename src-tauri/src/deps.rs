@@ -146,12 +146,28 @@ pub struct DepStatus {
     pub version: Option<String>,
 }
 
+/// Reads the version from LibreOffice's `program/version.ini`. Not every build
+/// writes `MsiProductVersion`, so fall back to the short build id.
+fn soffice_version_ini(exe: &std::path::Path) -> Option<String> {
+    let ini = std::fs::read_to_string(exe.parent()?.join("version.ini")).ok()?;
+    let key = |k: &str| ini.lines().find_map(|l| l.trim().strip_prefix(k).map(|v| v.trim().to_string()));
+    key("MsiProductVersion=")
+        .map(|v| format!("LibreOffice {v}"))
+        .or_else(|| key("buildid=").map(|b| format!("LibreOffice (build {})", &b[..b.len().min(12)])))
+        .or_else(|| Some("LibreOffice".into()))
+}
+
 pub fn status_all() -> Vec<DepStatus> {
     ALL.iter()
         .map(|&t| {
             let path = find(t);
             let version = path.as_ref().and_then(|p| {
-                let out = command(p).args(t.version_args()).output().ok()?;
+                // On Windows `soffice --version` opens its own console and waits for
+                // "Press Enter to continue...", so read the installed version.ini instead.
+                if cfg!(windows) && t == Tool::Soffice {
+                    return soffice_version_ini(p);
+                }
+                let out = command(p).args(t.version_args()).stdin(std::process::Stdio::null()).output().ok()?;
                 let text = if out.stdout.is_empty() { out.stderr } else { out.stdout };
                 String::from_utf8_lossy(&text)
                     .lines()
