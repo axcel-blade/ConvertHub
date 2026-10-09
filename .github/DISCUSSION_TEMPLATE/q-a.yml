@@ -1,0 +1,18 @@
+title: "[Q&A] "
+labels: ["question"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What do you need help with?
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: OS and ConvertHub version
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried?
