@@ -1,6 +1,6 @@
 [package]
 name = "converthub"
-version = "0.1.1"
+version = "0.1.2"
 description = "ConvertHub - local multimedia conversion toolkit"
 edition = "2021"
 license = "MIT"
