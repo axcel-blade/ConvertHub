@@ -74,9 +74,19 @@ function itemParams(ts: ToolState, item: Item, op: OpDef): Params {
 
 function toast(text: string, kind: "info" | "error" | "success" = "info") {
   const region = document.getElementById("toasts")!;
-  const el = h("div", { class: `toast ${kind}`, role: kind === "error" ? "alert" : "status" }, text);
+  const el = h("div", { class: `toast ${kind}`, role: kind === "error" ? "alert" : "status" },
+    h("span", { class: "toast-text" }, text),
+    h("button", { class: "icon-btn toast-close", "aria-label": t("common.close"), onclick: () => el.remove() }, "×"));
   region.append(el);
-  setTimeout(() => el.remove(), kind === "error" ? 9000 : 4500);
+  // Keep the toast up while the user is reading it (hover or keyboard focus).
+  let timer = 0;
+  const arm = () => { timer = window.setTimeout(() => el.remove(), kind === "error" ? 9000 : 4500); };
+  const hold = () => clearTimeout(timer);
+  el.addEventListener("mouseenter", hold);
+  el.addEventListener("focusin", hold);
+  el.addEventListener("mouseleave", arm);
+  el.addEventListener("focusout", arm);
+  arm();
 }
 
 function showError(e: unknown) {
@@ -90,10 +100,13 @@ function optLabel(key: string, value: string) {
 
 function modal(title: string, body: Node) {
   const dlg = h("dialog", { class: "modal", "aria-label": title },
-    h("h2", {}, title),
-    h("div", { class: "modal-body" }, body),
-    h("div", { class: "modal-actions" }, h("button", { class: "btn", onclick: () => dlg.close() }, t("common.close"))));
+    h("div", { class: "modal-inner" },
+      h("h2", {}, title),
+      h("div", { class: "modal-body" }, body),
+      h("div", { class: "modal-actions" }, h("button", { class: "btn", onclick: () => dlg.close() }, t("common.close")))));
   dlg.addEventListener("close", () => dlg.remove());
+  // Clicking the backdrop (outside the dialog box) closes it.
+  dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
   document.body.append(dlg);
   dlg.showModal();
 }
