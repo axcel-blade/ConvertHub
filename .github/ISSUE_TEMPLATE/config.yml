@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and help
+    url: https://github.com/axcel-blade/ConvertHub/discussions
+    about: Ask questions and share ideas in Discussions.
+  - name: Security vulnerability
+    url: https://github.com/axcel-blade/ConvertHub/security/advisories/new
+    about: Report security issues privately.
