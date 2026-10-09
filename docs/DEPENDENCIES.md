@@ -32,7 +32,7 @@ the user installs them and their licenses apply to those installations.
 | yt-dlp | Internet Archive downloads | Unlicense | Redistributable |
 | 7-Zip (`7z`, `7zz`) | RAR extraction | LGPL-2.1 + unRAR restriction | The unRAR code may not be used to create RAR archives; extraction is fine. |
 | Poppler (`pdftotext`, `pdftohtml`, `pdfimages`) | Higher-fidelity PDF conversion | GPL-2/GPL-3 | Separate executable. Shipping it requires GPL compliance for those binaries. |
-| LibreOffice (`soffice`) | PDF to DOC/DOCX with layout, XLS output | MPL-2.0 | Large; recommend users install it themselves |
+| LibreOffice (`soffice`) | PDF to DOC/DOCX with layout, XLS output | MPL-2.0 | Large; recommend users install it themselves. On Windows its version is read from `programersion.ini`, because `soffice --version` opens a console that waits for Enter. |
 | ImageMagick (`magick`) | HEIC/HEIF/AVIF | ImageMagick License (Apache-2.0 style) | Redistributable. HEIC support depends on libheif (LGPL) and its codecs. |
 | ExifTool | Writing image tags, keeping metadata | Artistic/GPL (Perl) | Redistributable |
 | cdparanoia | Linux audio-CD ripping | GPL-2 | Install through the distribution |
