@@ -14,7 +14,8 @@ const write = (p, s) => writeFileSync(new URL(p, root), s);
 const CARGO_TOML = "src-tauri/Cargo.toml";
 const CARGO_LOCK = "src-tauri/Cargo.lock";
 const tomlRe = /^(\[package\][\s\S]*?^version\s*=\s*")([^"]+)(")/m;
-const lockRe = /(\[\[package\]\]\nname = "converthub"\nversion = ")([^"]+)(")/;
+// \r?\n: Windows checkouts (core.autocrlf) use CRLF line endings.
+const lockRe = /(\[\[package\]\]\r?\nname = "converthub"\r?\nversion = ")([^"]+)(")/;
 
 const target = process.argv[2];
 if (target && !/^\d+\.\d+\.\d+(-[\w.]+)?$/.test(target)) {
