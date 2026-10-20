@@ -38,7 +38,7 @@ Rules of thumb:
 1. Open or find an issue describing the change.
 2. Create a branch from `develop`: `git checkout -b feature/short-description develop`.
 3. Make your change, keeping commits focused.
-4. Run the checks with `npm test` (TypeScript type check, i18n key check and Rust tests).
+4. Run the checks with `npm test` (Biome lint, TypeScript type check, i18n key check, version check, Vitest unit tests and Rust tests). For Rust changes, also run `cargo fmt` and `cargo clippy --all-targets -- -D warnings` in `src-tauri/`.
 5. Update docs (`docs/`, `README.md`, `CHANGELOG.md`) when behaviour changes.
 6. Open a pull request against `develop` and fill in the template.
 
@@ -48,11 +48,12 @@ Two GitHub Actions workflows run automatically:
 
 | Workflow | Runs on | What it does |
 | --- | --- | --- |
-| [`ci.yml`](.github/workflows/ci.yml) | Pushes to `main`, `develop`, `feature/**`, `release/**`, `hotfix/**`; PRs into `main`, `develop`, `release/**` | Type check, i18n check and Vite build (frontend), plus `cargo test` (backend), on Ubuntu |
+| [`ci.yml`](.github/workflows/ci.yml) | Pushes to `main`, `develop`, `feature/**`, `release/**`, `hotfix/**`; PRs into `main`, `develop`, `release/**` | Lint, type check, i18n and version checks, unit tests and Vite build (frontend); `cargo test` on Ubuntu, Windows and macOS, plus `cargo fmt --check` and `cargo clippy` (backend) |
 | [`build.yml`](.github/workflows/build.yml) | Pushes to `main` and `develop`; all PRs | Full checks and installers for Windows, macOS and Linux, uploaded as artifacts |
 
-Pull requests must pass CI before merging. Running `npm test` locally covers
-the same checks as `ci.yml`.
+Pull requests must pass CI before merging. Running `npm test` locally, plus
+`cargo fmt --check` and `cargo clippy` in `src-tauri/`, covers the same checks
+as `ci.yml`.
 
 ## Commit messages
 

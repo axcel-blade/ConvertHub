@@ -28,8 +28,24 @@ pub(super) fn s(p: &Path) -> String {
 /// 640x360, 5 s, H.264 + AAC, moov at the end (no faststart).
 fn video(dir: &Path) -> PathBuf {
     let p = dir.join("clip.mp4");
-    ff(&["-f", "lavfi", "-i", "testsrc=size=640x360:rate=25:duration=5", "-f", "lavfi", "-i", "sine=frequency=440:duration=5",
-        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", &s(&p)]);
+    ff(&[
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc=size=640x360:rate=25:duration=5",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:duration=5",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-shortest",
+        &s(&p),
+    ]);
     p
 }
 
@@ -70,7 +86,8 @@ pub(super) fn probe(p: &Path) -> Probe {
 }
 
 pub(super) fn decoded_secs(p: &Path) -> f64 {
-    let out = Command::new(deps::find(Tool::Ffmpeg).unwrap()).arg("-i").arg(p).args(["-f", "null", "-"]).output().unwrap();
+    let out =
+        Command::new(deps::find(Tool::Ffmpeg).unwrap()).arg("-i").arg(p).args(["-f", "null", "-"]).output().unwrap();
     let text = String::from_utf8_lossy(&out.stderr);
     let t = text.rsplit("time=").next().unwrap_or("").split_whitespace().next().unwrap_or("");
     ffmpeg::parse_time(t).unwrap_or(0.0)
@@ -91,8 +108,16 @@ pub(super) fn no_temp_files(dir: &Path) {
 
 fn convert(format: &str, accel: Accel) -> Op {
     Op::VideoConvert {
-        format: format.into(), preset: None, codec: None, accel, crf: None, video_bitrate_k: None,
-        audio_bitrate_k: None, max_width: None, max_height: None, target_size_mb: None,
+        format: format.into(),
+        preset: None,
+        codec: None,
+        accel,
+        crf: None,
+        video_bitrate_k: None,
+        audio_bitrate_k: None,
+        max_width: None,
+        max_height: None,
+        target_size_mb: None,
     }
 }
 
@@ -132,10 +157,22 @@ fn gpu_detection_and_encode() {
     assert_eq!(probe(&o).video_codec.as_deref(), Some("h264"));
     println!("GPU h264 engine: {engine}");
     // Auto must pick the GPU too, and HEVC must work when verified.
-    let (_, auto) = ok(&[&v], d.path(), Op::VideoConvert {
-        format: "mp4".into(), preset: None, codec: Some("hevc".into()), accel: Accel::Auto, crf: Some(28),
-        video_bitrate_k: None, audio_bitrate_k: None, max_width: None, max_height: None, target_size_mb: None,
-    });
+    let (_, auto) = ok(
+        &[&v],
+        d.path(),
+        Op::VideoConvert {
+            format: "mp4".into(),
+            preset: None,
+            codec: Some("hevc".into()),
+            accel: Accel::Auto,
+            crf: Some(28),
+            video_bitrate_k: None,
+            audio_bitrate_k: None,
+            max_width: None,
+            max_height: None,
+            target_size_mb: None,
+        },
+    );
     println!("Auto hevc engine: {auto:?}");
     assert!(auto.unwrap().starts_with("GPU ("));
 }
@@ -145,27 +182,63 @@ fn gpu_detection_and_encode() {
 fn presets_and_compression() {
     let d = tempfile::tempdir().unwrap();
     let v = video(d.path());
-    let (o, _) = ok(&[&v], d.path(), Op::VideoConvert {
-        format: "mp4".into(), preset: Some("ipod_classic".into()), codec: None, accel: Accel::Cpu, crf: None,
-        video_bitrate_k: None, audio_bitrate_k: None, max_width: None, max_height: None, target_size_mb: None,
-    });
+    let (o, _) = ok(
+        &[&v],
+        d.path(),
+        Op::VideoConvert {
+            format: "mp4".into(),
+            preset: Some("ipod_classic".into()),
+            codec: None,
+            accel: Accel::Cpu,
+            crf: None,
+            video_bitrate_k: None,
+            audio_bitrate_k: None,
+            max_width: None,
+            max_height: None,
+            target_size_mb: None,
+        },
+    );
     let p = probe(&o);
     assert_eq!(o.extension().unwrap(), "m4v");
     assert!(p.width.unwrap() <= 320 && p.height.unwrap() <= 240, "{p:?}");
 
-    let (o, _) = ok(&[&v], d.path(), Op::VideoConvert {
-        format: "mp4".into(), preset: Some("iphone_modern".into()), codec: None, accel: Accel::Cpu, crf: None,
-        video_bitrate_k: None, audio_bitrate_k: None, max_width: None, max_height: None, target_size_mb: None,
-    });
+    let (o, _) = ok(
+        &[&v],
+        d.path(),
+        Op::VideoConvert {
+            format: "mp4".into(),
+            preset: Some("iphone_modern".into()),
+            codec: None,
+            accel: Accel::Cpu,
+            crf: None,
+            video_bitrate_k: None,
+            audio_bitrate_k: None,
+            max_width: None,
+            max_height: None,
+            target_size_mb: None,
+        },
+    );
     assert_eq!(probe(&o).video_codec.as_deref(), Some("h264"));
 
     // Target size: 0.5 MB for 5 s.
     let out = d.path().join("small");
     std::fs::create_dir(&out).unwrap();
-    let (o, _) = ok(&[&v], &out, Op::VideoConvert {
-        format: "mp4".into(), preset: None, codec: None, accel: Accel::Cpu, crf: None, video_bitrate_k: None,
-        audio_bitrate_k: Some(64), max_width: Some(320), max_height: None, target_size_mb: Some(0.5),
-    });
+    let (o, _) = ok(
+        &[&v],
+        &out,
+        Op::VideoConvert {
+            format: "mp4".into(),
+            preset: None,
+            codec: None,
+            accel: Accel::Cpu,
+            crf: None,
+            video_bitrate_k: None,
+            audio_bitrate_k: Some(64),
+            max_width: Some(320),
+            max_height: None,
+            target_size_mb: Some(0.5),
+        },
+    );
     let mb = std::fs::metadata(&o).unwrap().len() as f64 / 1048576.0;
     println!("target 0.5 MB -> {mb:.3} MB");
     assert!(mb < 0.75, "{mb}");
@@ -210,11 +283,22 @@ fn video_editing() {
     let (o, _) = ok(&[&v], d.path(), Op::VideoDelogo { x: 10, y: 10, w: 80, h: 40, authorized: true });
     assert!(dur(&o) > 4.0);
 
-    let (o, _) = ok(&[&v], d.path(), Op::MediaTags {
-        title: "Test Title".into(), artist: "Me".into(), album: String::new(), year: "2026".into(), comment: String::new(),
-    });
+    let (o, _) = ok(
+        &[&v],
+        d.path(),
+        Op::MediaTags {
+            title: "Test Title".into(),
+            artist: "Me".into(),
+            album: String::new(),
+            year: "2026".into(),
+            comment: String::new(),
+        },
+    );
     let tags = Command::new(deps::find(Tool::Ffprobe).unwrap())
-        .args(["-v", "error", "-show_entries", "format_tags=title", "-of", "default=nw=1:nk=1"]).arg(&o).output().unwrap();
+        .args(["-v", "error", "-show_entries", "format_tags=title", "-of", "default=nw=1:nk=1"])
+        .arg(&o)
+        .output()
+        .unwrap();
     assert_eq!(String::from_utf8_lossy(&tags.stdout).trim(), "Test Title");
 
     // Existing output is never overwritten without permission.
@@ -277,7 +361,11 @@ fn audio_tools() {
     let out = d.path().join("out");
     std::fs::create_dir(&out).unwrap();
     for fmt in ["mp3", "m4a", "aac", "ogg", "opus", "flac", "wav", "wma", "aiff", "ac3"] {
-        let (o, e) = ok(&[&a], &out, Op::AudioConvert { format: fmt.into(), bitrate_k: Some(128), sample_rate: Some(44100), channels: Some(1) });
+        let (o, e) = ok(
+            &[&a],
+            &out,
+            Op::AudioConvert { format: fmt.into(), bitrate_k: Some(128), sample_rate: Some(44100), channels: Some(1) },
+        );
         let p = probe(&o);
         // Raw ADTS AAC has no index; ffprobe estimates its duration from the
         // bitrate, so measure it by decoding instead.
@@ -286,7 +374,8 @@ fn audio_tools() {
         println!("{fmt}: {e:?} {:?}", p.audio_codec);
     }
     // Extract audio from a video file.
-    let (o, _) = ok(&[&v], &out, Op::AudioConvert { format: "mp3".into(), bitrate_k: None, sample_rate: None, channels: None });
+    let (o, _) =
+        ok(&[&v], &out, Op::AudioConvert { format: "mp3".into(), bitrate_k: None, sample_rate: None, channels: None });
     assert!(!probe(&o).has_video);
 
     let (o, _) = ok(&[&a], d.path(), Op::AudioTrim { start: "0.5".into(), end: "2.5".into() });
@@ -306,18 +395,40 @@ fn image_via_ffmpeg() {
     let d = tempfile::tempdir().unwrap();
     let src = d.path().join("in.png");
     image::RgbImage::from_fn(64, 48, |x, y| image::Rgb([x as u8 * 4, y as u8 * 5, 90])).save(&src).unwrap();
-    let (o, e) = ok(&[&src], d.path(), Op::ImageConvert {
-        format: "webp".into(), quality: Some(70), width: None, height: None, percent: Some(50.0),
-        rotate: None, flip_h: true, flip_v: false, keep_metadata: false,
-    });
+    let (o, e) = ok(
+        &[&src],
+        d.path(),
+        Op::ImageConvert {
+            format: "webp".into(),
+            quality: Some(70),
+            width: None,
+            height: None,
+            percent: Some(50.0),
+            rotate: None,
+            flip_h: true,
+            flip_v: false,
+            keep_metadata: false,
+        },
+    );
     assert_eq!(e.as_deref(), Some("FFmpeg (libwebp)"));
     assert_eq!(image::image_dimensions(&o).unwrap(), (32, 24));
     // HEIC output without ImageMagick: clear message.
     if deps::find(Tool::Magick).is_none() {
-        let (r, _) = job(&[&src], d.path(), Op::ImageConvert {
-            format: "heic".into(), quality: None, width: None, height: None, percent: None,
-            rotate: None, flip_h: false, flip_v: false, keep_metadata: false,
-        });
+        let (r, _) = job(
+            &[&src],
+            d.path(),
+            Op::ImageConvert {
+                format: "heic".into(),
+                quality: None,
+                width: None,
+                height: None,
+                percent: None,
+                rotate: None,
+                flip_h: false,
+                flip_v: false,
+                keep_metadata: false,
+            },
+        );
         assert_eq!(r.unwrap_err().0.key, "errors.heicEncode");
     }
 }
@@ -329,10 +440,34 @@ fn disc_rips() {
     // Unencrypted DVD structure.
     let dvd = d.path().join("DVD");
     std::fs::create_dir_all(dvd.join("VIDEO_TS")).unwrap();
-    ff(&["-f", "lavfi", "-i", "testsrc=size=720x480:rate=30:duration=4", "-f", "lavfi", "-i", "sine=duration=4",
-        "-c:v", "mpeg2video", "-c:a", "mp2", "-f", "vob", &s(&dvd.join("VIDEO_TS/VTS_01_1.VOB"))]);
-    ff(&["-f", "lavfi", "-i", "testsrc=size=720x480:rate=30:duration=3", "-c:v", "mpeg2video", "-f", "vob",
-        &s(&dvd.join("VIDEO_TS/VTS_01_2.VOB"))]);
+    ff(&[
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc=size=720x480:rate=30:duration=4",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=duration=4",
+        "-c:v",
+        "mpeg2video",
+        "-c:a",
+        "mp2",
+        "-f",
+        "vob",
+        &s(&dvd.join("VIDEO_TS/VTS_01_1.VOB")),
+    ]);
+    ff(&[
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc=size=720x480:rate=30:duration=3",
+        "-c:v",
+        "mpeg2video",
+        "-f",
+        "vob",
+        &s(&dvd.join("VIDEO_TS/VTS_01_2.VOB")),
+    ]);
     let (r, _) = job(&[&dvd], d.path(), Op::DvdRip { format: "mp4".into(), preset: None, authorized: false });
     assert_eq!(r.unwrap_err().0.key, "errors.discAuthorization");
     let (o, _) = ok(&[&dvd], d.path(), Op::DvdRip { format: "mp4".into(), preset: None, authorized: true });
@@ -342,8 +477,17 @@ fn disc_rips() {
     // Blu-ray folder structure (unencrypted M2TS).
     let bd = d.path().join("BD");
     std::fs::create_dir_all(bd.join("BDMV/STREAM")).unwrap();
-    ff(&["-f", "lavfi", "-i", "testsrc=size=1280x720:rate=24:duration=3", "-c:v", "libx264", "-f", "mpegts",
-        &s(&bd.join("BDMV/STREAM/00001.m2ts"))]);
+    ff(&[
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc=size=1280x720:rate=24:duration=3",
+        "-c:v",
+        "libx264",
+        "-f",
+        "mpegts",
+        &s(&bd.join("BDMV/STREAM/00001.m2ts")),
+    ]);
     let (o, _) = ok(&[&bd], d.path(), Op::BlurayRip { format: "mkv".into(), preset: None, authorized: true });
     assert!(dur(&o) > 2.5);
 
@@ -351,7 +495,13 @@ fn disc_rips() {
     let cd = d.path().join("CD");
     std::fs::create_dir(&cd).unwrap();
     for i in 1..=2 {
-        ff(&["-f", "lavfi", "-i", &format!("sine=frequency={}:duration=2", 300 * i), &s(&cd.join(format!("{i} Track.aiff")))]);
+        ff(&[
+            "-f",
+            "lavfi",
+            "-i",
+            &format!("sine=frequency={}:duration=2", 300 * i),
+            &s(&cd.join(format!("{i} Track.aiff"))),
+        ]);
     }
     let (dir, _) = ok(&[&cd], d.path(), Op::CdRip { format: "mp3".into(), bitrate_k: Some(192) });
     assert_eq!(std::fs::read_dir(dir).unwrap().count(), 2);
@@ -380,18 +530,30 @@ fn direct_download_local_server() {
             let mut buf = [0u8; 2048];
             let _ = st.read(&mut buf);
             if i == 0 {
-                let _ = write!(st, "HTTP/1.1 200 OK\r\nContent-Type: video/mp4\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len());
+                let _ = write!(
+                    st,
+                    "HTTP/1.1 200 OK\r\nContent-Type: video/mp4\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    body.len()
+                );
                 let _ = st.write_all(&body);
             } else {
                 let html = b"<html>not media</html>";
-                let _ = write!(st, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", html.len());
+                let _ = write!(
+                    st,
+                    "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    html.len()
+                );
                 let _ = st.write_all(html);
             }
         }
     });
     let out = d.path().join("dl");
     std::fs::create_dir(&out).unwrap();
-    let (o, e) = ok(&[], &out, Op::Download { url: format!("http://127.0.0.1:{port}/media/sample%20clip.mp4"), acknowledged: true });
+    let (o, e) = ok(
+        &[],
+        &out,
+        Op::Download { url: format!("http://127.0.0.1:{port}/media/sample%20clip.mp4"), acknowledged: true },
+    );
     assert_eq!(e.as_deref(), Some("Native (HTTP)"));
     assert_eq!(o.file_name().unwrap(), "sample clip.mp4");
     assert!(dur(&o) > 4.0);
@@ -407,13 +569,34 @@ fn direct_download_local_server() {
 fn cancel_cleans_up() {
     let d = tempfile::tempdir().unwrap();
     let long = d.path().join("long.mp4");
-    ff(&["-f", "lavfi", "-i", "testsrc=size=1920x1080:rate=30:duration=60", "-c:v", "libx264", "-preset", "ultrafast", &s(&long)]);
+    ff(&[
+        "-f",
+        "lavfi",
+        "-i",
+        "testsrc=size=1920x1080:rate=30:duration=60",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "ultrafast",
+        &s(&long),
+    ]);
     let ctx = std::sync::Arc::new(Ctx::for_test());
     let req = JobRequest {
-        inputs: vec![s(&long)], output_dir: s(d.path()), output_name: None, overwrite: false,
+        inputs: vec![s(&long)],
+        output_dir: s(d.path()),
+        output_name: None,
+        overwrite: false,
         operation: Op::VideoConvert {
-            format: "webm".into(), preset: None, codec: None, accel: Accel::Cpu, crf: None, video_bitrate_k: None,
-            audio_bitrate_k: None, max_width: None, max_height: None, target_size_mb: None,
+            format: "webm".into(),
+            preset: None,
+            codec: None,
+            accel: Accel::Cpu,
+            crf: None,
+            video_bitrate_k: None,
+            audio_bitrate_k: None,
+            max_width: None,
+            max_height: None,
+            target_size_mb: None,
         },
     };
     let c2 = ctx.clone();
@@ -435,7 +618,15 @@ fn screen_recording() {
     let disp = vec![Display { id: "0".into(), name: "test".into(), x: 0, y: 0, width: 640, height: 480 }];
     let path = rec
         .start(
-            RecordOptions { kind: "display".into(), id: "0".into(), fps: 15, format: "mp4".into(), output_dir: s(d.path()), file_name: "rec".into(), overwrite: false },
+            RecordOptions {
+                kind: "display".into(),
+                id: "0".into(),
+                fps: 15,
+                format: "mp4".into(),
+                output_dir: s(d.path()),
+                file_name: "rec".into(),
+                overwrite: false,
+            },
             disp,
         )
         .unwrap();

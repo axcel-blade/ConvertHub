@@ -8,6 +8,7 @@
 use crate::deps::{self, Tool};
 use crate::error::R;
 use crate::fsutil::{plan_output, TempGuard};
+use crate::sync::LockExt;
 use crate::ui;
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
@@ -82,10 +83,22 @@ fn wayland() -> bool {
 
 pub fn targets(monitors: Vec<Display>) -> Targets {
     if deps::find(Tool::Ffmpeg).is_none() {
-        return Targets { supported: false, reason_key: Some("recorder.reasons.noFfmpeg".into()), window_capture: false, displays: vec![], windows: vec![] };
+        return Targets {
+            supported: false,
+            reason_key: Some("recorder.reasons.noFfmpeg".into()),
+            window_capture: false,
+            displays: vec![],
+            windows: vec![],
+        };
     }
     if wayland() {
-        return Targets { supported: false, reason_key: Some("recorder.reasons.wayland".into()), window_capture: false, displays: vec![], windows: vec![] };
+        return Targets {
+            supported: false,
+            reason_key: Some("recorder.reasons.wayland".into()),
+            window_capture: false,
+            displays: vec![],
+            windows: vec![],
+        };
     }
     let mut displays = monitors;
     if cfg!(target_os = "macos") {
@@ -103,7 +116,9 @@ pub fn targets(monitors: Vec<Display>) -> Targets {
 /// avfoundation addresses screens by device index ("Capture screen N").
 fn mac_screens(monitors: &[Display]) -> Vec<Display> {
     let Some(ff) = deps::find(Tool::Ffmpeg) else { return vec![] };
-    let Ok(out) = deps::command(&ff).args(["-hide_banner", "-f", "avfoundation", "-list_devices", "true", "-i", ""]).output() else {
+    let Ok(out) =
+        deps::command(&ff).args(["-hide_banner", "-f", "avfoundation", "-list_devices", "true", "-i", ""]).output()
+    else {
         return vec![];
     };
     let text = String::from_utf8_lossy(&out.stderr);
@@ -130,7 +145,8 @@ fn list_windows() -> Vec<Window> {
     #[cfg(windows)]
     {
         let ps = "Get-Process | Where-Object { $_.MainWindowTitle } | ForEach-Object { $_.MainWindowTitle }";
-        if let Ok(out) = deps::command(std::path::Path::new("powershell")).args(["-NoProfile", "-Command", ps]).output() {
+        if let Ok(out) = deps::command(std::path::Path::new("powershell")).args(["-NoProfile", "-Command", ps]).output()
+        {
             return String::from_utf8_lossy(&out.stdout)
                 .lines()
                 .map(str::trim)
@@ -170,8 +186,14 @@ fn capture_args(opts: &RecordOptions, displays: &[Display]) -> R<Vec<String>> {
         } else {
             let d = display()?;
             a.extend([
-                "-offset_x".into(), d.x.to_string(), "-offset_y".into(), d.y.to_string(),
-                "-video_size".into(), format!("{}x{}", d.width, d.height), "-i".into(), "desktop".into(),
+                "-offset_x".into(),
+                d.x.to_string(),
+                "-offset_y".into(),
+                d.y.to_string(),
+                "-video_size".into(),
+                format!("{}x{}", d.width, d.height),
+                "-i".into(),
+                "desktop".into(),
             ]);
         }
     } else if cfg!(target_os = "macos") {
@@ -188,7 +210,12 @@ fn capture_args(opts: &RecordOptions, displays: &[Display]) -> R<Vec<String>> {
             a.extend(["-window_id".into(), opts.id.clone(), "-i".into(), disp]);
         } else {
             let d = display()?;
-            a.extend(["-video_size".into(), format!("{}x{}", d.width, d.height), "-i".into(), format!("{disp}+{},{}", d.x, d.y)]);
+            a.extend([
+                "-video_size".into(),
+                format!("{}x{}", d.width, d.height),
+                "-i".into(),
+                format!("{disp}+{},{}", d.x, d.y),
+            ]);
         }
     }
     Ok(a)
@@ -196,7 +223,7 @@ fn capture_args(opts: &RecordOptions, displays: &[Display]) -> R<Vec<String>> {
 
 impl Recorder {
     pub fn start(&self, opts: RecordOptions, displays: Vec<Display>) -> R<String> {
-        let mut g = self.0.lock().unwrap();
+        let mut g = self.0.lock_safe();
         if g.is_some() {
             return Err(ui!("errors.alreadyRecording"));
         }
@@ -252,7 +279,7 @@ impl Recorder {
     }
 
     pub fn stop(&self) -> R<String> {
-        let mut active = self.0.lock().unwrap().take().ok_or_else(|| ui!("errors.notRecording"))?;
+        let mut active = self.0.lock_safe().take().ok_or_else(|| ui!("errors.notRecording"))?;
         if let Some(stdin) = active.child.stdin.as_mut() {
             let _ = stdin.write_all(b"q");
             let _ = stdin.flush();
@@ -280,7 +307,7 @@ impl Recorder {
     }
 
     pub fn state(&self) -> RecState {
-        let g = self.0.lock().unwrap();
+        let g = self.0.lock_safe();
         RecState { recording: g.is_some(), elapsed_secs: g.as_ref().map_or(0.0, |a| a.started.elapsed().as_secs_f64()) }
     }
 }

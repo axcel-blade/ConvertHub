@@ -112,7 +112,9 @@ pub fn target(req: &JobRequest) -> R<Target> {
         Op::VideoTrim { .. } => file("_clip", &same),
         Op::VideoSplit { .. } | Op::AudioSplit { .. } => folder("_parts"),
         Op::VideoJoin { format } | Op::AudioJoin { format } => file("_joined", format),
-        Op::VideoMux { .. } => file("_muxed", if same == "mp4" || same == "mov" || same == "mkv" { &same } else { "mkv" }),
+        Op::VideoMux { .. } => {
+            file("_muxed", if same == "mp4" || same == "mov" || same == "mkv" { &same } else { "mkv" })
+        }
         Op::VideoCrop { .. } => file("_crop", &same),
         Op::VideoDelogo { .. } => file("_delogo", &same),
         Op::VideoRepair | Op::AudioRepair => file("_repaired", &video::repair_ext(&same)),

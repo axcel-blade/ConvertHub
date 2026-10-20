@@ -104,6 +104,12 @@ export const api = {
   clearFinished: () => invoke<void>("clear_finished"),
   recentJobs: () => invoke<Job[]>("recent_jobs"),
   clearRecent: () => invoke<void>("clear_recent"),
+  retryFailed: () => invoke<string[]>("retry_failed"),
+  restorableJobs: () => invoke<number>("restorable_jobs"),
+  restoreJobs: (accept: boolean) => invoke<number>("restore_jobs", { accept }),
+  getWorkers: () => invoke<[number, number]>("get_workers"),
+  setWorkers: (n: number) => invoke<number>("set_workers", { n }),
+  updaterConfigured: () => invoke<boolean>("updater_configured"),
   probeMedia: (path: string) => invoke<Probe>("probe_media", { path }),
   imageInfo: (path: string) =>
     invoke<{ width: number; height: number; format: string; tags: [string, string][] }>("image_info", { path }),

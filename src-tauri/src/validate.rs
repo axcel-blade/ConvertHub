@@ -20,25 +20,22 @@ pub enum Category {
 }
 
 pub const VIDEO_IN: &[&str] = &[
-    "mp4", "m4v", "mkv", "mov", "avi", "wmv", "flv", "webm", "mpg", "mpeg", "ts", "m2ts", "mts",
-    "3gp", "3g2", "vob", "ogv", "asf", "rm", "rmvb", "f4v", "divx", "gif",
+    "mp4", "m4v", "mkv", "mov", "avi", "wmv", "flv", "webm", "mpg", "mpeg", "ts", "m2ts", "mts", "3gp", "3g2", "vob",
+    "ogv", "asf", "rm", "rmvb", "f4v", "divx", "gif",
 ];
 pub const AUDIO_IN: &[&str] = &[
-    "mp3", "m4a", "aac", "wav", "flac", "ogg", "oga", "opus", "wma", "aiff", "aif", "ac3", "amr",
-    "ape", "mka", "mp2", "wv", "caf",
+    "mp3", "m4a", "aac", "wav", "flac", "ogg", "oga", "opus", "wma", "aiff", "aif", "ac3", "amr", "ape", "mka", "mp2",
+    "wv", "caf",
 ];
 pub const IMAGE_IN: &[&str] = &[
-    "png", "jpg", "jpeg", "jfif", "webp", "bmp", "gif", "tif", "tiff", "ico", "tga", "pnm", "pbm",
-    "pgm", "ppm", "qoi", "heic", "heif", "avif",
+    "png", "jpg", "jpeg", "jfif", "webp", "bmp", "gif", "tif", "tiff", "ico", "tga", "pnm", "pbm", "pgm", "ppm", "qoi",
+    "heic", "heif", "avif",
 ];
 pub const ARCHIVE_IN: &[&str] = &["zip", "7z", "rar"];
 
-pub const VIDEO_OUT: &[&str] =
-    &["mp4", "mkv", "mov", "avi", "webm", "wmv", "flv", "mpg", "3gp", "m4v", "ts", "gif"];
-pub const AUDIO_OUT: &[&str] =
-    &["mp3", "m4a", "aac", "ogg", "opus", "flac", "wav", "wma", "aiff", "ac3"];
-pub const IMAGE_OUT: &[&str] =
-    &["png", "jpg", "webp", "bmp", "gif", "tiff", "ico", "tga", "qoi", "heic", "avif"];
+pub const VIDEO_OUT: &[&str] = &["mp4", "mkv", "mov", "avi", "webm", "wmv", "flv", "mpg", "3gp", "m4v", "ts", "gif"];
+pub const AUDIO_OUT: &[&str] = &["mp3", "m4a", "aac", "ogg", "opus", "flac", "wav", "wma", "aiff", "ac3"];
+pub const IMAGE_OUT: &[&str] = &["png", "jpg", "webp", "bmp", "gif", "tiff", "ico", "tga", "qoi", "heic", "avif"];
 
 /// Default per-category size ceilings (bytes). Generous, but they stop
 /// accidental multi-terabyte selections and decompression-bomb style inputs.
@@ -85,7 +82,9 @@ pub fn check_file(path: &Path, cat: Category) -> R<u64> {
         return Err(ui!("errors.emptyFile", "path" => path.display()));
     }
     if meta.len() > max_size(cat) {
-        return Err(ui!("errors.tooLarge", "path" => path.display(), "limitGb" => max_size(cat) / (1024 * 1024 * 1024)));
+        return Err(
+            ui!("errors.tooLarge", "path" => path.display(), "limitGb" => max_size(cat) / (1024 * 1024 * 1024)),
+        );
     }
     sniff(path, cat)?;
     Ok(meta.len())

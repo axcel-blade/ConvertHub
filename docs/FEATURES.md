@@ -95,8 +95,14 @@ them through its default-install-folder fallback.
 | 9.1 | FFmpeg codec, hwaccel and GPU detection with a real test encode | Implemented, needs tool | FFmpeg | NVENC, QSV, AMF, VideoToolbox, VA-API (H.264/HEVC) | E (NVENC + QSV verified; AMF/VA-API correctly rejected) |
 | 9.2 | Auto / CPU / GPU choice, automatic CPU fallback, and the engine actually used shown per job | Implemented | FFmpeg | H.264/HEVC outputs | E (GPU mode → h264_nvenc; Auto + HEVC → hevc_nvenc; CPU mode → libx264) |
 | 10.1 | Localization framework, English, language picker, contribution link | Implemented | — | — | U (`npm run check:i18n`) |
-| 11.1 | Queue: batch, per-file settings, progress, cancel, retry, open folder | Implemented | — | — | B |
-| 11.2 | Recent jobs history, format guide, dependency/GPU status page | Implemented | — | — | B |
+| 11.1 | Queue: batch, per-file settings, progress, cancel, retry (single and all failed), open folder | Implemented | — | — | B |
+| 11.1b | Adjustable number of parallel jobs (1–8) | Implemented | — | — | B |
+| 11.1c | Resume unfinished jobs after a restart or crash | Implemented | — | — | B |
+| 11.1d | Taskbar/dock progress and "queue finished" notification | Implemented | — | — | B |
+| 11.2 | Recent jobs history (with "Run again"), format guide, dependency/GPU status page | Implemented | — | — | B |
+| 11.2b | Remembered per-tool settings and named user presets | Implemented | — | — | U (`prefs.test.ts`) |
+| 11.2c | Keyboard shortcuts, skip link, screen-reader labels | Implemented | — | — | U (`shortcuts.test.ts`) |
+| 11.2d | Signed auto-updates | Implemented, needs signing key | GitHub release with `latest.json` | — | — |
 | 11.3 | Overwrite warning (UI) and enforcement (backend) | Implemented | — | — | U, E |
 | 11.4 | Backend validation of type (extension and magic bytes), size and existence | Implemented | — | — | U |
 | 11.5 | Temp-file cleanup on success, failure and cancel | Implemented | — | — | U, E (cancel mid-encode leaves no files) |

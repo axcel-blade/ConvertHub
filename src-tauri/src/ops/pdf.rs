@@ -4,7 +4,7 @@
 //! OCR is not implemented: scanned (image-only) PDFs yield no text.
 
 use crate::deps::{self, Tool};
-use crate::error::{R, UiMsg};
+use crate::error::{UiMsg, R};
 use crate::ffmpeg::run_process;
 use crate::fsutil::{file_stem, TempGuard};
 use crate::jobs::{Ctx, Operation as Op};
@@ -124,7 +124,8 @@ fn page_texts(ctx: &Ctx, input: &Path) -> R<Vec<String>> {
     if let Some(pt) = deps::find(Tool::Pdftotext) {
         let tmp = TempGuard::in_system_temp()?;
         let txt = tmp.path.join("out.txt");
-        let args: Vec<OsString> = vec!["-layout".into(), "-enc".into(), "UTF-8".into(), input.into(), txt.clone().into()];
+        let args: Vec<OsString> =
+            vec!["-layout".into(), "-enc".into(), "UTF-8".into(), input.into(), txt.clone().into()];
         run_process(ctx, &pt, &args, |_| {}, TOOL_TIMEOUT)?;
         ctx.set_engine("Poppler (pdftotext)");
         let text = String::from_utf8_lossy(&std::fs::read(&txt)?).to_string();
@@ -185,8 +186,15 @@ fn convert(ctx: &Ctx, input: &Path, target: &str, out: &Path) -> R<()> {
             if let Some(ph) = deps::find(Tool::Pdftohtml) {
                 let work = TempGuard::in_system_temp()?;
                 let base = work.path.join("doc");
-                let args: Vec<OsString> =
-                    vec!["-s".into(), "-noframes".into(), "-i".into(), "-enc".into(), "UTF-8".into(), input.into(), base.into()];
+                let args: Vec<OsString> = vec![
+                    "-s".into(),
+                    "-noframes".into(),
+                    "-i".into(),
+                    "-enc".into(),
+                    "UTF-8".into(),
+                    input.into(),
+                    base.into(),
+                ];
                 run_process(ctx, &ph, &args, |_| {}, TOOL_TIMEOUT)?;
                 let html = std::fs::read_dir(&work.path)?
                     .filter_map(|e| e.ok().map(|e| e.path()))
@@ -303,16 +311,14 @@ fn table_pages(ctx: &Ctx, input: &Path) -> R<Vec<Grid>> {
     if let Some(pt) = deps::find(Tool::Pdftotext) {
         let tmp = TempGuard::in_system_temp()?;
         let html = tmp.path.join("bbox.html");
-        let args: Vec<OsString> = vec!["-bbox".into(), "-enc".into(), "UTF-8".into(), input.into(), html.clone().into()];
+        let args: Vec<OsString> =
+            vec!["-bbox".into(), "-enc".into(), "UTF-8".into(), input.into(), html.clone().into()];
         run_process(ctx, &pt, &args, |_| {}, TOOL_TIMEOUT)?;
         ctx.set_engine("Poppler (pdftotext -bbox)");
         return Ok(grids_from_bbox(&String::from_utf8_lossy(&std::fs::read(&html)?)));
     }
     let pages = page_texts(ctx, input)?;
-    Ok(pages
-        .iter()
-        .map(|p| p.lines().filter(|l| !l.trim().is_empty()).map(split_cells).collect())
-        .collect())
+    Ok(pages.iter().map(|p| p.lines().filter(|l| !l.trim().is_empty()).map(split_cells).collect()).collect())
 }
 
 struct Word {
@@ -342,7 +348,13 @@ pub fn grids_from_bbox(html: &str) -> Vec<Grid> {
             .filter_map(|w| {
                 let (tag, rest) = w.split_once('>')?;
                 let text = unescape(rest.split("</word>").next()?);
-                Some(Word { x0: attr(tag, "xMin")?, x1: attr(tag, "xMax")?, y0: attr(tag, "yMin")?, y1: attr(tag, "yMax")?, text })
+                Some(Word {
+                    x0: attr(tag, "xMin")?,
+                    x1: attr(tag, "xMax")?,
+                    y0: attr(tag, "yMin")?,
+                    y1: attr(tag, "yMax")?,
+                    text,
+                })
             })
             .collect();
         words.sort_by(|a, b| a.y0.total_cmp(&b.y0).then(a.x0.total_cmp(&b.x0)));
@@ -500,7 +512,10 @@ mod tests {
             "Type" => "Page", "Parent" => pages_id, "Contents" => content_id,
             "Resources" => resources_id, "MediaBox" => vec![0.into(), 0.into(), 595.into(), 842.into()],
         });
-        doc.objects.insert(pages_id, Object::Dictionary(dictionary! { "Type" => "Pages", "Kids" => vec![page_id.into()], "Count" => 1 }));
+        doc.objects.insert(
+            pages_id,
+            Object::Dictionary(dictionary! { "Type" => "Pages", "Kids" => vec![page_id.into()], "Count" => 1 }),
+        );
         let catalog_id = doc.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages_id });
         doc.trailer.set("Root", catalog_id);
         doc.save(path).unwrap();
@@ -535,7 +550,9 @@ mod tests {
 
     #[test]
     fn bbox_grid() {
-        let w = |x0: f64, x1: f64, y: f64, t: &str| format!("<word xMin=\"{x0}\" yMin=\"{y}\" xMax=\"{x1}\" yMax=\"{}\">{t}</word>", y + 11.0);
+        let w = |x0: f64, x1: f64, y: f64, t: &str| {
+            format!("<word xMin=\"{x0}\" yMin=\"{y}\" xMax=\"{x1}\" yMax=\"{}\">{t}</word>", y + 11.0)
+        };
         let html = format!(
             "<page width=\"595\">{}{}{}{}{}</page>",
             w(57.0, 90.0, 104.0, "Bergen"),

@@ -169,8 +169,15 @@ fn rar_extraction() {
 
 fn img_op(format: &str) -> Op {
     Op::ImageConvert {
-        format: format.into(), quality: Some(80), width: None, height: None, percent: None,
-        rotate: None, flip_h: false, flip_v: false, keep_metadata: false,
+        format: format.into(),
+        quality: Some(80),
+        width: None,
+        height: None,
+        percent: None,
+        rotate: None,
+        flip_h: false,
+        flip_v: false,
+        keep_metadata: false,
     }
 }
 
@@ -200,7 +207,10 @@ fn exif_tags_with_exiftool() {
     let d = tempfile::tempdir().unwrap();
     let jpg = d.path().join("photo.jpg");
     image::RgbImage::from_pixel(40, 20, image::Rgb([200, 30, 30])).save(&jpg).unwrap();
-    run_tool(&et, &["-overwrite_original", "-Artist=Original Author", "-GPSLatitude=59.91", "-GPSLatitudeRef=N", &s(&jpg)]);
+    run_tool(
+        &et,
+        &["-overwrite_original", "-Artist=Original Author", "-GPSLatitude=59.91", "-GPSLatitudeRef=N", &s(&jpg)],
+    );
 
     // The native EXIF reader sees the tags.
     let info = super::image::info(&jpg).unwrap();
@@ -216,26 +226,49 @@ fn exif_tags_with_exiftool() {
     // keep_metadata copies it.
     let keep = d.path().join("keep");
     std::fs::create_dir(&keep).unwrap();
-    let (o, _) = ok(&[&jpg], &keep, Op::ImageConvert {
-        format: "jpg".into(), quality: Some(90), width: Some(20), height: None, percent: None,
-        rotate: None, flip_h: false, flip_v: false, keep_metadata: true,
-    });
+    let (o, _) = ok(
+        &[&jpg],
+        &keep,
+        Op::ImageConvert {
+            format: "jpg".into(),
+            quality: Some(90),
+            width: Some(20),
+            height: None,
+            percent: None,
+            rotate: None,
+            flip_h: false,
+            flip_v: false,
+            keep_metadata: true,
+        },
+    );
     let tags = run_tool(&et, &["-s", "-Artist", &s(&o)]);
     assert!(tags.contains("Original Author"), "{tags}");
 
     // Writing new tags.
-    let (o, e) = ok(&[&jpg], d.path(), Op::ImageTags {
-        title: "Sunset".into(), artist: "ConvertHub Test".into(), copyright: "CC0".into(), comment: "hello".into(),
-    });
+    let (o, e) = ok(
+        &[&jpg],
+        d.path(),
+        Op::ImageTags {
+            title: "Sunset".into(),
+            artist: "ConvertHub Test".into(),
+            copyright: "CC0".into(),
+            comment: "hello".into(),
+        },
+    );
     assert_eq!(e.as_deref(), Some("ExifTool"));
     let tags = run_tool(&et, &["-s", "-Artist", "-Copyright", "-ImageDescription", "-Title", &s(&o)]);
     println!("{tags}");
-    assert!(tags.contains("ConvertHub Test") && tags.contains("CC0") && tags.contains("hello") && tags.contains("Sunset"), "{tags}");
+    assert!(
+        tags.contains("ConvertHub Test") && tags.contains("CC0") && tags.contains("hello") && tags.contains("Sunset"),
+        "{tags}"
+    );
     let none = d.path().join("none");
     std::fs::create_dir(&none).unwrap();
-    let (r, _) = job(&[&jpg], &none, Op::ImageTags {
-        title: String::new(), artist: String::new(), copyright: String::new(), comment: String::new(),
-    });
+    let (r, _) = job(
+        &[&jpg],
+        &none,
+        Op::ImageTags { title: String::new(), artist: String::new(), copyright: String::new(), comment: String::new() },
+    );
     assert_eq!(r.unwrap_err().0.key, "errors.noTags");
 }
 

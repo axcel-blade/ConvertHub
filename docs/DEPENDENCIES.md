@@ -12,6 +12,7 @@ shipping to generate the third-party notice file.
 | Crate | Purpose |
 | --- | --- |
 | tauri, tauri-plugin-dialog, tauri-plugin-opener | Desktop shell, native dialogs, open folder / URL |
+| tauri-plugin-notification, tauri-plugin-process, tauri-plugin-updater | "Queue finished" notifications, restart after an update, signed auto-updates |
 | image | Native image decoding and encoding |
 | kamadak-exif | Reading EXIF tags |
 | lopdf, pdf-extract | PDF merge, image extraction, text extraction |

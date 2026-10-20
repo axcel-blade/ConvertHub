@@ -2,7 +2,7 @@
 //! HEIC/HEIF/AVIF and lossy WebP use ImageMagick or FFmpeg when installed.
 
 use crate::deps::{self, Tool};
-use crate::error::{R, UiMsg};
+use crate::error::{UiMsg, R};
 use crate::ffmpeg::{self, os};
 use crate::fsutil::{ext_lower, TempGuard};
 use crate::jobs::{Ctx, Operation as Op};
@@ -31,13 +31,18 @@ fn external_decode(ctx: &Ctx, path: &Path) -> R<DynamicImage> {
     if let Some(magick) = deps::find(Tool::Magick) {
         let mut src = path.as_os_str().to_owned();
         src.push("[0]");
-        ffmpeg::run_process(ctx, &magick, &[src, png.clone().into()], |_| {}, Some(std::time::Duration::from_secs(300)))?;
+        ffmpeg::run_process(
+            ctx,
+            &magick,
+            &[src, png.clone().into()],
+            |_| {},
+            Some(std::time::Duration::from_secs(300)),
+        )?;
     } else if deps::find(Tool::Ffmpeg).is_some() {
         let mut args = vec!["-i".into(), path.into()];
         args.extend(os(&["-frames:v", "1"]));
         args.push(png.clone().into());
-        ffmpeg::run(ctx, args, None, 0.0, 0.3)
-            .map_err(|_| ui!("errors.heicDecode", "ext" => ext_lower(path)))?;
+        ffmpeg::run(ctx, args, None, 0.0, 0.3).map_err(|_| ui!("errors.heicDecode", "ext" => ext_lower(path)))?;
     } else {
         return Err(ui!("errors.heicDecode", "ext" => ext_lower(path)));
     }
@@ -163,7 +168,8 @@ fn encode(ctx: &Ctx, img: &DynamicImage, out: &Path, format: &str, quality: Opti
             Ok("Native (Rust)".into())
         }
         "gif" | "tga" | "qoi" | "png" | "tiff" => {
-            let fmt = ImageFormat::from_extension(format).ok_or_else(|| ui!("errors.unsupportedOutput", "format" => format))?;
+            let fmt = ImageFormat::from_extension(format)
+                .ok_or_else(|| ui!("errors.unsupportedOutput", "format" => format))?;
             img.to_rgba8().save_with_format(out, fmt)?;
             Ok("Native (Rust)".into())
         }
@@ -200,7 +206,9 @@ pub fn run(ctx: &Ctx, op: &Op, input: &Path, out: &Path) -> R<Vec<PathBuf>> {
                             tmp.path.clone().into(),
                         ];
                         // Metadata copy is best effort; the conversion itself succeeded.
-                        if ffmpeg::run_process(ctx, &et, &args, |_| {}, Some(std::time::Duration::from_secs(60))).is_err() {
+                        if ffmpeg::run_process(ctx, &et, &args, |_| {}, Some(std::time::Duration::from_secs(60)))
+                            .is_err()
+                        {
                             ctx.stage(UiMsg::new("result.metadataNotKept"));
                         }
                     }
@@ -214,7 +222,9 @@ pub fn run(ctx: &Ctx, op: &Op, input: &Path, out: &Path) -> R<Vec<PathBuf>> {
             let tmp = TempGuard::file_for(out);
             std::fs::copy(input, &tmp.path)?;
             let mut args: Vec<std::ffi::OsString> = vec!["-overwrite_original".into()];
-            for (tag, v) in [("Title", title), ("Artist", artist), ("Copyright", copyright), ("ImageDescription", comment)] {
+            for (tag, v) in
+                [("Title", title), ("Artist", artist), ("Copyright", copyright), ("ImageDescription", comment)]
+            {
                 if !v.trim().is_empty() {
                     args.push(format!("-{tag}={}", v.trim()).into());
                 }
@@ -285,8 +295,15 @@ mod tests {
         for fmt in ["jpg", "webp", "bmp", "gif", "tiff", "ico", "qoi"] {
             let out = d.path().join(format!("out.{fmt}"));
             let op = Op::ImageConvert {
-                format: fmt.into(), quality: Some(100), width: Some(32), height: None, percent: None,
-                rotate: Some(90), flip_h: false, flip_v: false, keep_metadata: false,
+                format: fmt.into(),
+                quality: Some(100),
+                width: Some(32),
+                height: None,
+                percent: None,
+                rotate: Some(90),
+                flip_h: false,
+                flip_v: false,
+                keep_metadata: false,
             };
             run(&ctx, &op, &src, &out).unwrap();
             let img = image::open(&out).unwrap();

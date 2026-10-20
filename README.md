@@ -14,7 +14,7 @@
 
 <!-- Static badges -->
 [![License: MIT](https://img.shields.io/badge/license-MIT-c4f82a)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.0-c4f82a)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.2-c4f82a)](CHANGELOG.md)
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white)](https://tauri.app/)
 [![Rust](https://img.shields.io/badge/Rust-stable-000000?logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Vite-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -33,16 +33,18 @@ feature uses the network.
 
 ```
 src/ (Frontend, TypeScript + Vite)            src-tauri/src/ (Backend, Rust + Tauri 2)
-├── main.ts    — app shell, navigation        ├── commands.rs — Tauri IPC commands
-├── defs.ts    — declarative operation        ├── jobs.rs     — queue, workers, events, history
-│                definitions → forms          ├── ops/        — video, audio, image, pdf,
-├── api.ts     — typed IPC calls + events     │                 disc, download, archive
-├── dom.ts     — DOM helpers                  ├── ffmpeg.rs   — process runner, progress, cancel
-├── i18n.ts    — translation loader           ├── gpu.rs      — GPU encoder detection
-├── locales/   — all user-facing text         ├── recorder.rs — screen capture
-└── styles.css — theme                        ├── presets.rs  — device / format presets
-                                              ├── validate.rs, fsutil.rs — input + safe file handling
-                                              └── deps.rs     — external tool discovery
+├── main.ts    — app shell, startup           ├── commands.rs — Tauri IPC commands
+├── views/     — tool, queue, pages, capture  ├── jobs.rs     — queue, workers, events, history,
+├── state.ts   — shared UI state, render()    │                 resumable pending jobs
+├── ui.ts      — toasts, dialogs, widgets     ├── ops/        — video, audio, image, pdf,
+├── prefs.ts   — remembered settings, presets │                 disc, download, archive
+├── shortcuts.ts — keyboard shortcuts         ├── ffmpeg.rs   — process runner, progress, cancel
+├── defs.ts    — declarative operation        ├── gpu.rs      — GPU encoder detection
+│                definitions → forms          ├── recorder.rs — screen capture
+├── api.ts     — typed IPC calls + events     ├── presets.rs  — device / format presets
+├── dom.ts, i18n.ts — DOM + translations      ├── validate.rs, fsutil.rs — input + safe file handling
+├── locales/   — all user-facing text         ├── sync.rs     — poison-tolerant locking
+└── styles.css — theme                        └── deps.rs     — external tool discovery
 ```
 
 The frontend renders forms from `defs.ts` and sends jobs to the backend over
@@ -63,8 +65,13 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a detailed walkthrough.
 | Screen Recorder | Record a display or window, with a visible recording indicator |
 | Archive | Safe ZIP / 7z / RAR extraction |
 
-- **Batch queue:** per-file settings, progress, cancel, retry and open-folder actions.
-- **Recent jobs:** history of finished conversions.
+- **Batch queue:** per-file settings, progress, cancel, retry (one or all failed) and open-folder actions, with an adjustable number of jobs running at once.
+- **Resume after restart:** unfinished jobs are offered again the next time the app opens.
+- **Remembered settings:** each tool starts from your last-used settings, and you can save named presets.
+- **Recent jobs:** history of finished conversions, with "Run again".
+- **Progress outside the app:** taskbar/dock progress and a notification when the queue finishes.
+- **Keyboard shortcuts:** Ctrl+O, Ctrl+Enter, Ctrl+Shift+S, Alt+1–8, Alt+Q/R/S; press F1 for the list.
+- **Auto-updates** from Settings (signed builds only).
 - **GPU acceleration:** uses hardware encoders when a working one is detected.
 - **System & tools page:** shows detected tools, GPU encoders and how to install missing ones.
 - **Format guide** and a **language picker**.
@@ -98,8 +105,11 @@ Having trouble? See [SUPPORT.md](SUPPORT.md).
 ## Development
 
 ```sh
-npm test            # type check + i18n check + Rust tests
+npm test            # lint + type check + i18n + version check + unit tests + Rust tests
+npm run test:unit   # frontend unit tests (Vitest) only
+npm run lint        # Biome lint for TypeScript
 npm run test:e2e    # end-to-end tests (needs external tools installed)
+npm run version:set 0.2.0  # set the version in every file
 npm run tauri build # build installers
 ```
 

@@ -1,7 +1,7 @@
 //! Video operations on top of FFmpeg: convert/compress (with device presets
 //! and GPU encoding), trim, split, join, mux, crop, delogo, repair, and tags.
 
-use crate::error::{R, UiMsg};
+use crate::error::{UiMsg, R};
 use crate::ffmpeg::{self, os, parse_time, Probe};
 use crate::fsutil::{ext_lower, file_stem, TempGuard};
 use crate::gpu::{self, Accel};
@@ -127,7 +127,14 @@ fn video_codec_args(a: &Attempt, enc: &Enc, family: &str) -> (Vec<String>, Vec<S
     } else {
         match a.encoder.as_str() {
             "libx264" | "libx265" => args.extend(["-crf".into(), crf.to_string(), "-preset".into(), "medium".into()]),
-            "libvpx-vp9" => args.extend(["-crf".into(), crf.max(15).to_string(), "-b:v".into(), "0".into(), "-row-mt".into(), "1".into()]),
+            "libvpx-vp9" => args.extend([
+                "-crf".into(),
+                crf.max(15).to_string(),
+                "-b:v".into(),
+                "0".into(),
+                "-row-mt".into(),
+                "1".into(),
+            ]),
             "mpeg4" | "wmv2" | "mpeg2video" => {
                 // 2 (best) .. 31 (worst), mapped from CRF 0..51.
                 let q = (2 + crf * 29 / 51).clamp(2, 31);
@@ -268,7 +275,16 @@ pub fn enc_for(format: &str, preset: Option<&str>, probe: &Probe) -> R<Enc> {
 
 fn enc_from_convert(op: &Op, probe: &Probe) -> R<Enc> {
     let Op::VideoConvert {
-        format, preset, codec, accel, crf, video_bitrate_k, audio_bitrate_k, max_width, max_height, target_size_mb,
+        format,
+        preset,
+        codec,
+        accel,
+        crf,
+        video_bitrate_k,
+        audio_bitrate_k,
+        max_width,
+        max_height,
+        target_size_mb,
     } = op
     else {
         unreachable!()
@@ -302,7 +318,9 @@ fn enc_from_convert(op: &Op, probe: &Probe) -> R<Enc> {
         let total_k = mb * 8192.0 / d; // MB -> kbit, per second
         let video_k = (total_k * 0.97 - audio_k as f64).floor();
         if video_k < 50.0 {
-            return Err(ui!("errors.targetTooSmall", "minMb" => format!("{:.1}", (audio_k as f64 + 50.0) * d / 8192.0)));
+            return Err(
+                ui!("errors.targetTooSmall", "minMb" => format!("{:.1}", (audio_k as f64 + 50.0) * d / 8192.0)),
+            );
         }
         enc.video_bitrate_k = Some(video_k as u32);
     }
@@ -376,7 +394,19 @@ pub fn run(ctx: &Ctx, op: &Op, inputs: &[PathBuf], out: &Path) -> R<Vec<PathBuf>
             let tmp = TempGuard::file_for(out);
             let mut args = input(first);
             args.extend(input(Path::new(audio)));
-            args.extend(os(&["-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest"]));
+            args.extend(os(&[
+                "-map",
+                "0:v:0",
+                "-map",
+                "1:a:0",
+                "-c:v",
+                "copy",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "192k",
+                "-shortest",
+            ]));
             args.extend(container_args(&ext_lower(out)).iter().map(OsString::from));
             args.push(tmp.path.clone().into());
             ctx.set_engine("Stream copy + AAC");
@@ -412,7 +442,8 @@ pub fn run(ctx: &Ctx, op: &Op, inputs: &[PathBuf], out: &Path) -> R<Vec<PathBuf>
             let tmp = TempGuard::file_for(out);
             let mut args = input(first);
             args.extend(os(&["-map", "0", "-map_metadata", "0", "-c", "copy"]));
-            for (k, v) in [("title", title), ("artist", artist), ("album", album), ("date", year), ("comment", comment)] {
+            for (k, v) in [("title", title), ("artist", artist), ("album", album), ("date", year), ("comment", comment)]
+            {
                 if !v.trim().is_empty() {
                     args.extend(os(&["-metadata", &format!("{k}={}", v.trim())]));
                 }
@@ -437,8 +468,16 @@ fn check_rect(p: &Probe, x: u32, y: u32, w: u32, h: u32, margin: u32) -> R<()> {
 
 /// Returns (start, optional duration) in seconds.
 pub fn trim_range(start: &str, end: &str, total: Option<f64>) -> R<(f64, Option<f64>)> {
-    let s = if start.trim().is_empty() { 0.0 } else { parse_time(start).ok_or_else(|| ui!("errors.badTime", "value" => start))? };
-    let e = if end.trim().is_empty() { None } else { Some(parse_time(end).ok_or_else(|| ui!("errors.badTime", "value" => end))?) };
+    let s = if start.trim().is_empty() {
+        0.0
+    } else {
+        parse_time(start).ok_or_else(|| ui!("errors.badTime", "value" => start))?
+    };
+    let e = if end.trim().is_empty() {
+        None
+    } else {
+        Some(parse_time(end).ok_or_else(|| ui!("errors.badTime", "value" => end))?)
+    };
     if let Some(e) = e {
         if e <= s {
             return Err(ui!("errors.endBeforeStart"));
@@ -453,7 +492,7 @@ pub fn trim_range(start: &str, end: &str, total: Option<f64>) -> R<(f64, Option<
 }
 
 pub fn split(ctx: &Ctx, input_path: &Path, out_dir: &Path, seg: f64, precise: bool, video: bool) -> R<Vec<PathBuf>> {
-    if !(seg >= 1.0) {
+    if seg.is_nan() || seg < 1.0 {
         return Err(ui!("errors.segmentTooShort"));
     }
     let probe = ffmpeg::probe(input_path)?;
@@ -466,7 +505,14 @@ pub fn split(ctx: &Ctx, input_path: &Path, out_dir: &Path, seg: f64, precise: bo
         let enc = same_format_enc(input_path);
         let (family, acodec) = container_defaults(&enc.format, None);
         let venc = cpu_encoder(family)?;
-        args.extend(os(&["-c:v", venc, "-c:a", audio_encoder(acodec), "-force_key_frames", &format!("expr:gte(t,n_forced*{seg})")]));
+        args.extend(os(&[
+            "-c:v",
+            venc,
+            "-c:a",
+            audio_encoder(acodec),
+            "-force_key_frames",
+            &format!("expr:gte(t,n_forced*{seg})"),
+        ]));
         ctx.set_engine(format!("CPU ({venc})"));
     } else {
         args.extend(os(&["-c", "copy"]));
@@ -511,7 +557,14 @@ fn join(ctx: &Ctx, inputs: &[PathBuf], enc: &Enc, out: &Path) -> R<()> {
                 format!("[{i}:a:0]")
             } else {
                 // Silent filler so the concat filter gets an audio pad.
-                args.extend(os(&["-f", "lavfi", "-t", &format!("{:.3}", p.duration.unwrap_or(1.0)), "-i", "anullsrc=r=48000:cl=stereo"]));
+                args.extend(os(&[
+                    "-f",
+                    "lavfi",
+                    "-t",
+                    &format!("{:.3}", p.duration.unwrap_or(1.0)),
+                    "-i",
+                    "anullsrc=r=48000:cl=stereo",
+                ]));
                 let s = format!("[{extra}:a]");
                 extra += 1;
                 s
