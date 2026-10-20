@@ -6,6 +6,7 @@
 
 use crate::deps::{self, Tool};
 use crate::ffmpeg;
+use crate::sync::LockExt;
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 
@@ -54,11 +55,11 @@ const CANDIDATES: &[(&str, &str, &str)] = &[
 static CACHE: Mutex<Option<HwInfo>> = Mutex::new(None);
 
 pub fn info(refresh: bool) -> HwInfo {
-    let mut g = CACHE.lock().unwrap();
+    let mut g = CACHE.lock_safe();
     if refresh || g.is_none() {
         *g = Some(detect());
     }
-    g.clone().unwrap()
+    g.clone().unwrap_or_default()
 }
 
 pub const VAAPI_DEVICE: &str = "/dev/dri/renderD128";
@@ -112,8 +113,7 @@ fn detect() -> HwInfo {
         })
         .unwrap_or_default();
 
-    let compiled: Vec<String> =
-        CANDIDATES.iter().map(|c| c.0.to_string()).filter(|n| ffmpeg::has_encoder(n)).collect();
+    let compiled: Vec<String> = CANDIDATES.iter().map(|c| c.0.to_string()).filter(|n| ffmpeg::has_encoder(n)).collect();
 
     let verified = CANDIDATES
         .iter()
@@ -128,9 +128,7 @@ fn detect() -> HwInfo {
 fn test_encode(ff: &std::path::Path, encoder: &str) -> bool {
     let mut args: Vec<String> = vec!["-hide_banner".into(), "-loglevel".into(), "error".into()];
     args.extend(pre_input_args(encoder));
-    args.extend(
-        ["-f", "lavfi", "-i", "color=c=black:s=256x256:r=25:d=0.2"].iter().map(|s| s.to_string()),
-    );
+    args.extend(["-f", "lavfi", "-i", "color=c=black:s=256x256:r=25:d=0.2"].iter().map(|s| s.to_string()));
     if let Some(f) = upload_filter(encoder) {
         args.extend(["-vf".into(), f.into()]);
     }

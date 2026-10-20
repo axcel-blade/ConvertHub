@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": { "includes": ["src/**/*.ts", "scripts/**/*.mjs"] },
+  "formatter": { "enabled": false },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "style": { "noNonNullAssertion": "off", "useTemplate": "off" },
+      "complexity": { "noForEach": "off" },
+      "suspicious": { "noAssignInExpressions": "off" }
+    }
+  }
+}

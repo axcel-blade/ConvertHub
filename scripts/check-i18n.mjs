@@ -25,7 +25,7 @@ const patterns = [
   /"((?:recorder\.reasons|download\.notes)\.[\w]+)"/g,
 ];
 for (const f of [...walk(join(root, "src")), ...walk(join(root, "src-tauri/src"))]) {
-  if (!/\.(ts|rs)$/.test(f)) continue;
+  if (!/\.(ts|rs)$/.test(f) || f.includes("__tests__")) continue;
   const text = readFileSync(f, "utf8");
   for (const re of patterns) for (const m of text.matchAll(re)) used.add(m[1]);
 }
@@ -48,8 +48,8 @@ for (const d of new Set(depIds)) {
 for (const v of ["video", "audio", "image", "pdf", "disc", "download", "recorder", "archive", "queue", "recent", "formats", "system", "settings"]) used.add(`nav.${v}`);
 for (const s of ["queued", "running", "done", "failed", "cancelled"]) used.add(`status.${s}`);
 
-let missing = [...used].filter((k) => !keys.has(k)).sort();
-let extra = [];
+const missing = [...used].filter((k) => !keys.has(k)).sort();
+const extra = [];
 for (const f of readdirSync(join(root, "src/locales"))) {
   if (f === "en.json") continue;
   const other = flat(JSON.parse(readFileSync(join(root, "src/locales", f), "utf8")));

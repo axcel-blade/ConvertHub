@@ -40,8 +40,23 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run check:i18n
+      - run: npm run check:version
       - run: cargo test --manifest-path src-tauri/Cargo.toml
-      - run: npm run tauri build
+      - name: Build
+        shell: bash
+        env:
+          # Optional: set these repository secrets/variables to ship signed
+          # auto-updates (see docs/BUILDING.md, "Auto-updates").
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          UPDATER_PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}
+        run: |
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ] && [ -n "$UPDATER_PUBKEY" ]; then
+            CONFIG=$(node -e 'console.log(JSON.stringify({bundle:{createUpdaterArtifacts:true},plugins:{updater:{pubkey:process.env.UPDATER_PUBKEY}}}))')
+            npm run tauri build -- --config "$CONFIG"
+          else
+            npm run tauri build
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
@@ -53,4 +68,6 @@ jobs:
             src-tauri/target/release/bundle/**/*.deb
             src-tauri/target/release/bundle/**/*.rpm
             src-tauri/target/release/bundle/**/*.AppImage
+            src-tauri/target/release/bundle/**/*.sig
+            src-tauri/target/release/bundle/**/*.tar.gz
           if-no-files-found: warn

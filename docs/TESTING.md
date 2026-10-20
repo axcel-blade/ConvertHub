@@ -3,7 +3,8 @@
 ## Automated
 
 ```bash
-npm test          # typecheck + translation keys + cargo test
+npm test          # lint + typecheck + translation keys + version check + Vitest + cargo test
+npm run test:unit # frontend unit tests only (src/__tests__)
 npm run test:e2e  # end-to-end tests; need FFmpeg on PATH (GPU and screen-recording tests included)
 # Optional: python scripts/make-rar-fixtures.py <dir>, then set CONVERTHUB_E2E_RAR_DIR=<dir>
 # Optional (network): set CONVERTHUB_E2E_ARCHIVE_URL=https://archive.org/details/<small public-domain item>
@@ -84,6 +85,17 @@ installed unless the item says otherwise.
 - [ ] macOS: first run triggers the permission prompt; denial shows the permission message
 - [ ] Linux X11 display/window; Wayland shows "not available"
 
+### Queue and preferences
+- [ ] "Jobs run at the same time" set to 1 and to 3: that many jobs run at once
+- [ ] Close the app with jobs queued; on relaunch "Resume unfinished jobs?" appears; Resume re-queues them, Discard clears them
+- [ ] "Retry failed (n)" re-queues every failed job; "Run again" in Recent jobs queues the same job
+- [ ] Change a tool's settings and restart: the tool starts from those settings (authorization boxes stay unticked)
+- [ ] Save, apply and delete a "My presets" entry
+- [ ] Taskbar/dock shows progress while the queue runs and clears when it finishes
+- [ ] With the window in the background, a notification appears when the queue finishes
+- [ ] Shortcuts: Ctrl+O, Ctrl+Enter, Ctrl+Shift+S, Alt+1–8, Alt+Q/R/S, F1; pressing Tab at the top shows "Skip to content"
+- [ ] Settings → Updates says updates are not enabled in an unsigned build
+
 ### Archive
 - [ ] ZIP, 7z, RAR (with 7-Zip) extract to a new folder
 - [ ] Archive with `../` entry is rejected and nothing is written
@@ -102,6 +114,8 @@ installed unless the item says otherwise.
 | 2026-10-09 | Windows 11 Pro x64, FFmpeg 9.0.2 full, RTX 5060 + Intel UHD | `cargo test -- --ignored` (11 end-to-end tests: video formats, presets/compression, editing, repair, audio, lossy WebP, DVD/Blu-ray/CD, download, cancel, GPU, screen recording) | Pass |
 | 2026-10-09 | Windows 11 Pro x64 + Poppler 25.07, LibreOffice, 7-Zip, ImageMagick 7.1.2, ExifTool, yt-dlp 2026.06.09 | 8 tool end-to-end tests (`e2e_tools.rs`): PDF→TXT/HTML/HTM/XLSX/DOCX/DOC/XLS, PDF image extraction, scanned-PDF message, 7z + encrypted 7z, RAR5 + traversal RAR, HEIC/AVIF round trip, EXIF strip/keep/write, archive.org download | Pass (after the PDF→XLSX column fix) |
 | 2026-10-09 | Windows 11 Pro x64 | Full run: `cargo test --lib -- --include-ignored` | 43/43 pass |
-| — | Windows | Manual GUI walkthrough of the checklist above | **Not run** |
+| 2026-10-20 | Windows 11 Pro x64 | `npm test` (Biome lint, typecheck, i18n, version check, 20 Vitest tests, Rust unit tests), `cargo fmt --check`, `cargo clippy --all-targets -D warnings`, `vite build` | Pass |
+| 2026-10-20 | Windows 11 Pro x64 | `tauri dev` launch with the notification, process and updater plugins (no startup errors) | Pass |
+| — | Windows | Manual GUI walkthrough of the checklist above (including the new queue and preferences section) | **Not run** |
 | — | macOS, Linux | Build, tests, launch | **Not run** |
 | — | Windows | NSIS/MSI installers | **Not run** (`--no-bundle` was used) |

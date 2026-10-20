@@ -34,13 +34,62 @@ pub struct Source {
 }
 
 pub const SOURCES: &[Source] = &[
-    Source { id: "direct", name: "Direct media links (http/https)", hosts: &[], enabled: true, note_key: "download.notes.direct" },
-    Source { id: "archive", name: "Internet Archive (archive.org)", hosts: &["archive.org", "www.archive.org"], enabled: true, note_key: "download.notes.archive" },
-    Source { id: "wikimedia", name: "Wikimedia Commons (file links)", hosts: &["upload.wikimedia.org"], enabled: true, note_key: "download.notes.wikimedia" },
-    Source { id: "youtube", name: "YouTube", hosts: &["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"], enabled: false, note_key: "download.notes.youtube" },
-    Source { id: "youku", name: "Youku", hosts: &["youku.com", "v.youku.com"], enabled: false, note_key: "download.notes.youku" },
-    Source { id: "vimeo", name: "Vimeo", hosts: &["vimeo.com", "player.vimeo.com"], enabled: false, note_key: "download.notes.vimeo" },
-    Source { id: "streaming", name: "Subscription streaming services (Netflix, Disney+, etc.)", hosts: &["netflix.com", "www.netflix.com", "disneyplus.com", "www.disneyplus.com", "primevideo.com", "www.primevideo.com"], enabled: false, note_key: "download.notes.drm" },
+    Source {
+        id: "direct",
+        name: "Direct media links (http/https)",
+        hosts: &[],
+        enabled: true,
+        note_key: "download.notes.direct",
+    },
+    Source {
+        id: "archive",
+        name: "Internet Archive (archive.org)",
+        hosts: &["archive.org", "www.archive.org"],
+        enabled: true,
+        note_key: "download.notes.archive",
+    },
+    Source {
+        id: "wikimedia",
+        name: "Wikimedia Commons (file links)",
+        hosts: &["upload.wikimedia.org"],
+        enabled: true,
+        note_key: "download.notes.wikimedia",
+    },
+    Source {
+        id: "youtube",
+        name: "YouTube",
+        hosts: &["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"],
+        enabled: false,
+        note_key: "download.notes.youtube",
+    },
+    Source {
+        id: "youku",
+        name: "Youku",
+        hosts: &["youku.com", "v.youku.com"],
+        enabled: false,
+        note_key: "download.notes.youku",
+    },
+    Source {
+        id: "vimeo",
+        name: "Vimeo",
+        hosts: &["vimeo.com", "player.vimeo.com"],
+        enabled: false,
+        note_key: "download.notes.vimeo",
+    },
+    Source {
+        id: "streaming",
+        name: "Subscription streaming services (Netflix, Disney+, etc.)",
+        hosts: &[
+            "netflix.com",
+            "www.netflix.com",
+            "disneyplus.com",
+            "www.disneyplus.com",
+            "primevideo.com",
+            "www.primevideo.com",
+        ],
+        enabled: false,
+        note_key: "download.notes.drm",
+    },
 ];
 
 const MAX_BYTES: u64 = 50 * 1024 * 1024 * 1024;
@@ -115,18 +164,38 @@ fn percent_decode(s: &str) -> String {
     String::from_utf8_lossy(&out).to_string()
 }
 
+/// Follow redirects only to http(s) URLs that would themselves be accepted,
+/// so a direct link cannot bounce the download onto a disabled source.
+fn redirect_policy() -> reqwest::redirect::Policy {
+    reqwest::redirect::Policy::custom(|attempt| {
+        if attempt.previous().len() >= 10 {
+            return attempt.error("too many redirects");
+        }
+        match classify(attempt.url().as_str()) {
+            Ok(_) => attempt.follow(),
+            Err(_) => attempt.stop(),
+        }
+    })
+}
+
 fn direct_download(ctx: &Ctx, url: &str, out_dir: &Path, overwrite: bool) -> R<Vec<PathBuf>> {
     ctx.set_engine("Native (HTTP)");
     let client = reqwest::blocking::Client::builder()
         .connect_timeout(Duration::from_secs(20))
         .timeout(None)
         .user_agent(concat!("ConvertHub/", env!("CARGO_PKG_VERSION")))
+        .redirect(redirect_policy())
         .build()?;
     let mut resp = client.get(url).send().map_err(|e| ui!("errors.network", "detail" => e))?;
     if !resp.status().is_success() {
         return Err(ui!("errors.httpStatus", "status" => resp.status().as_u16()));
     }
-    let ctype = resp.headers().get(reqwest::header::CONTENT_TYPE).and_then(|v| v.to_str().ok()).unwrap_or("").to_ascii_lowercase();
+    let ctype = resp
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_ascii_lowercase();
     let disp = resp.headers().get(reqwest::header::CONTENT_DISPOSITION).and_then(|v| v.to_str().ok()).map(String::from);
     let mut name = filename_from(resp.url().as_str(), disp.as_deref());
     let mut ext = ext_lower(Path::new(&name));
@@ -142,7 +211,11 @@ fn direct_download(ctx: &Ctx, url: &str, out_dir: &Path, overwrite: bool) -> R<V
             "audio/wav" | "audio/x-wav" => "wav",
             "audio/flac" => "flac",
             "audio/mp4" => "m4a",
-            _ => return Err(ui!("errors.notMediaUrl", "type" => if ctype.is_empty() { "?".to_string() } else { ctype.clone() })),
+            _ => {
+                return Err(
+                    ui!("errors.notMediaUrl", "type" => if ctype.is_empty() { "?".to_string() } else { ctype.clone() }),
+                )
+            }
         };
         name = format!("{name}.{guessed}");
         ext = guessed.into();
@@ -150,7 +223,8 @@ fn direct_download(ctx: &Ctx, url: &str, out_dir: &Path, overwrite: bool) -> R<V
     if ctype.starts_with("text/html") {
         return Err(ui!("errors.notMediaUrl", "type" => ctype));
     }
-    let stem = Path::new(&name).file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| "download".into());
+    let stem =
+        Path::new(&name).file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| "download".into());
     let final_path = plan_output(out_dir, &stem, &ext, overwrite)?;
     let total = resp.content_length();
     if total.is_some_and(|t| t > MAX_BYTES) {

@@ -11,7 +11,11 @@ use std::path::{Component, Path, PathBuf};
 pub fn file_stem(p: &Path) -> String {
     let s = p.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
     let s = sanitize_component(&s);
-    if s.is_empty() { "output".into() } else { s }
+    if s.is_empty() {
+        "output".into()
+    } else {
+        s
+    }
 }
 
 pub fn ext_lower(p: &Path) -> String {
@@ -43,11 +47,8 @@ impl TempGuard {
         let dir = final_path.parent().unwrap_or(Path::new("."));
         let ext = ext_lower(final_path);
         let id = uuid::Uuid::new_v4().simple().to_string();
-        let name = if ext.is_empty() {
-            format!(".converthub-{id}.part")
-        } else {
-            format!(".converthub-{id}.part.{ext}")
-        };
+        let name =
+            if ext.is_empty() { format!(".converthub-{id}.part") } else { format!(".converthub-{id}.part.{ext}") };
         Self { path: dir.join(name), committed: false }
     }
 
@@ -96,8 +97,8 @@ impl Drop for TempGuard {
 }
 
 const RESERVED: &[&str] = &[
-    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
-    "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2",
+    "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
 ];
 
 /// Make a single filename component safe on every supported OS.

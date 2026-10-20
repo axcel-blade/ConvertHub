@@ -5,7 +5,7 @@
 //! Protected discs fail with a clear explanation.
 
 use crate::deps::{self, Tool};
-use crate::error::{R, UiMsg};
+use crate::error::{UiMsg, R};
 use crate::ffmpeg::{self, os, run_process_in};
 use crate::fsutil::{ext_lower, TempGuard};
 use crate::jobs::{Ctx, Operation as Op};
@@ -46,7 +46,11 @@ fn rip_video(ctx: &Ctx, input: &str, format: &str, preset: Option<&str>, out: &P
     let tmp = TempGuard::file_for(out);
     let args: Vec<OsString> = vec!["-fflags".into(), "+genpts".into(), "-i".into(), input.into()];
     video::encode(ctx, &args, &enc, &tmp.path, probe.duration, probe.has_audio).map_err(|e| {
-        if e.0.key == "errors.corruptInput" { ui!("errors.discProtected") } else { e }
+        if e.0.key == "errors.corruptInput" {
+            ui!("errors.discProtected")
+        } else {
+            e
+        }
     })?;
     tmp.commit(out)
 }
@@ -113,7 +117,10 @@ fn rip_cd(ctx: &Ctx, src: &Path, format: &str, bitrate_k: Option<u32>, out_dir: 
         // cdparanoia -B writes trackNN.cdda.wav into the working directory.
         let args: Vec<OsString> = vec!["-B".into(), "--".into(), "1-".into()];
         run_process_in(ctx, &cdp, &args, Some(&tmp.path), |_| {}, None)?;
-        tracks = std::fs::read_dir(&tmp.path)?.filter_map(|e| e.ok().map(|e| e.path())).filter(|p| ext_lower(p) == "wav").collect();
+        tracks = std::fs::read_dir(&tmp.path)?
+            .filter_map(|e| e.ok().map(|e| e.path()))
+            .filter(|p| ext_lower(p) == "wav")
+            .collect();
         _rip_tmp = Some(tmp);
         if tracks.is_empty() {
             return Err(ui!("errors.cdNoTracks"));

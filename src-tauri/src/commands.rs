@@ -108,8 +108,50 @@ pub fn clear_recent(jobs: State<'_, JobManager>) {
 }
 
 #[tauri::command]
+pub fn retry_failed(jobs: State<'_, JobManager>) -> Vec<String> {
+    jobs.retry_failed()
+}
+
+#[tauri::command]
+pub fn restorable_jobs(jobs: State<'_, JobManager>) -> usize {
+    jobs.restorable()
+}
+
+#[tauri::command]
+pub fn restore_jobs(jobs: State<'_, JobManager>, accept: bool) -> usize {
+    jobs.restore(accept)
+}
+
+#[tauri::command]
+pub fn get_workers(jobs: State<'_, JobManager>) -> (usize, usize) {
+    (jobs.workers(), crate::jobs::MAX_WORKERS)
+}
+
+#[tauri::command]
+pub fn set_workers(jobs: State<'_, JobManager>, n: usize) -> usize {
+    jobs.set_workers(n)
+}
+
+/// True when a signing public key is configured, i.e. updates can be verified.
+#[tauri::command]
+pub fn updater_configured(app: AppHandle) -> bool {
+    app.config()
+        .plugins
+        .0
+        .get("updater")
+        .and_then(|u| u.get("pubkey"))
+        .and_then(|k| k.as_str())
+        .is_some_and(|k| !k.trim().is_empty())
+}
+
+#[tauri::command]
 pub async fn probe_media(path: String) -> R<ffmpeg::Probe> {
-    blocking(move || ffmpeg::probe(std::path::Path::new(&path))).await
+    blocking(move || {
+        // Only probe files that pass the same checks as job inputs.
+        validate::check_file(std::path::Path::new(&path), Category::Media)?;
+        ffmpeg::probe(std::path::Path::new(&path))
+    })
+    .await
 }
 
 #[tauri::command]

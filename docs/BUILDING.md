@@ -52,8 +52,15 @@ This starts Vite on port 1420 and opens the app with hot reload.
 npm test
 ```
 
-This runs the TypeScript type check, the translation key check, and the Rust
-unit/integration tests.
+This runs the Biome lint, the TypeScript type check, the translation key check,
+the version consistency check, the Vitest frontend unit tests, and the Rust
+unit/integration tests. Before pushing Rust changes, also run these in
+`src-tauri/`:
+
+```bash
+cargo fmt
+cargo clippy --all-targets -- -D warnings
+```
 
 ## Release build and installers
 
@@ -77,11 +84,35 @@ Code signing is not configured. On Windows set up an Authenticode
 certificate, and on macOS a Developer ID plus notarization, following the
 Tauri distribution guides, before publishing builds.
 
+## Auto-updates (optional)
+
+The updater is built in but stays disabled until a signing key exists, so
+unsigned builds never offer updates.
+
+1. Generate a key pair: `npm run tauri signer generate -- -w ~/.tauri/converthub.key`.
+2. In the GitHub repository, add the secrets `TAURI_SIGNING_PRIVATE_KEY` and
+   `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, and the variable `TAURI_UPDATER_PUBKEY`
+   (the public key text).
+3. `build.yml` then builds signed updater artifacts (`*.sig`). Publish them with a
+   `latest.json` on the GitHub release; the app checks
+   `releases/latest/download/latest.json` from Settings → Updates.
+
+## Versioning
+
+`package.json` holds the version. Run `npm run version:set 0.2.0` to update
+`Cargo.toml` and `Cargo.lock` too; `npm run check:version` (also in CI) fails
+when they disagree.
+
 ## Continuous integration
+
+`.github/workflows/ci.yml` runs the frontend checks (lint, type check, i18n,
+version, unit tests, build) and the Rust tests on Ubuntu, Windows and macOS,
+plus `cargo fmt --check` and `cargo clippy` on Ubuntu.
 
 `.github/workflows/build.yml` builds and tests on `windows-latest`,
 `macos-latest` and `ubuntu-22.04`, and uploads the installers as workflow
-artifacts. It has not been run yet.
+artifacts. When the updater signing secrets are set, it also produces signed
+updater artifacts (see "Auto-updates" above). It has not been run yet.
 
 ## Shipping helper tools inside the app (optional)
 

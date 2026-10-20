@@ -41,8 +41,8 @@ pub fn run(ctx: &Ctx, input: &Path, out_dir: &Path) -> R<Vec<PathBuf>> {
 }
 
 fn extract_zip(ctx: &Ctx, input: &Path, dest: &Path) -> R<()> {
-    let mut zip = zip::ZipArchive::new(std::fs::File::open(input)?)
-        .map_err(|e| ui!("errors.archiveCorrupt", "detail" => e))?;
+    let mut zip =
+        zip::ZipArchive::new(std::fs::File::open(input)?).map_err(|e| ui!("errors.archiveCorrupt", "detail" => e))?;
     if zip.len() > MAX_ENTRIES {
         return Err(ui!("errors.archiveTooManyEntries"));
     }

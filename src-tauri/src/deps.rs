@@ -175,12 +175,7 @@ pub fn status_all() -> Vec<DepStatus> {
                     .find(|l| !l.is_empty())
                     .map(|l| l.chars().take(120).collect())
             });
-            DepStatus {
-                tool: t.id(),
-                found: path.is_some(),
-                path: path.map(|p| p.display().to_string()),
-                version,
-            }
+            DepStatus { tool: t.id(), found: path.is_some(), path: path.map(|p| p.display().to_string()), version }
         })
         .collect()
 }

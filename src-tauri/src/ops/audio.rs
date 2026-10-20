@@ -1,6 +1,6 @@
 //! Audio operations: convert, trim, split, join, mix, repair.
 
-use crate::error::{R, UiMsg};
+use crate::error::{UiMsg, R};
 use crate::ffmpeg::{self, os};
 use crate::fsutil::{ext_lower, TempGuard};
 use crate::jobs::{Ctx, Operation as Op};
@@ -28,7 +28,11 @@ pub fn codec_for(ext: &str) -> R<(&'static str, bool)> {
 }
 
 pub fn repair_ext(input_ext: &str) -> String {
-    if codec_for(input_ext).is_ok() { input_ext.to_string() } else { "m4a".into() }
+    if codec_for(input_ext).is_ok() {
+        input_ext.to_string()
+    } else {
+        "m4a".into()
+    }
 }
 
 fn codec_args(ext: &str, bitrate_k: Option<u32>, sample_rate: Option<u32>, channels: Option<u32>) -> R<Vec<OsString>> {

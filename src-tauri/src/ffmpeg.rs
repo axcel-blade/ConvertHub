@@ -42,7 +42,8 @@ pub fn run_process_in(
         cmd.current_dir(d);
     }
     cmd.args(args).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
-    let mut child: Child = cmd.spawn().map_err(|e| ui!("errors.spawnFailed", "tool" => program.display(), "detail" => e))?;
+    let mut child: Child =
+        cmd.spawn().map_err(|e| ui!("errors.spawnFailed", "tool" => program.display(), "detail" => e))?;
 
     let stdout = child.stdout.take().expect("piped");
     let stderr = child.stderr.take().expect("piped");
